@@ -1,55 +1,78 @@
-import React from "react";
+/* eslint-disable no-unused-vars */
+import React, { useState, useEffect } from "react";
+import "./slider.css";
+import axios from "axios";
 import PropTypes from "prop-types";
 import Carousel from "react-material-ui-carousel";
 import { Paper, Button } from "@material-ui/core";
+const token = Buffer.from(
+  `${process.env.USER}:${process.env.PASSWORD}`,
+  "utf8"
+).toString("base64");
+const basicAuth = {
+  Authorization: `Basic ${token}`,
+};
 
 /**
  * @function Slider
  */
 const Slider = () => {
-  var items = [
-    {
-      name: "Random Name #1",
-      description: "Probably the most random thing you have ever seen!",
-    },
-    {
-      name: "Random Name #2",
-      description: "Hello World!",
-    },
-  ];
+  const [url, setUrl] = useState(`https://api.github.com/users/gaearon`);
+  const [data, setData] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const nicks = ["gaearon", "acdlite", "yyx990803", "unclebob", "martinfowler"];
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+
+      const result = await axios(url, {}, { headers: basicAuth });
+      setData(result.data);
+      setIsLoading(false);
+    };
+
+    fetchData();
+  }, [url]);
 
   return (
     <Carousel
-      next={(next, active) =>
-        console.log(`we left ${active}, and are now at ${next}`)
-      }
-      prev={(prev, active) =>
-        console.log(`we left ${active}, and are now at ${prev}`)
-      }
+      autoPlay={false}
+      animation={"slide"}
+      navButtonsAlwaysVisible={true}
+      onChange={(current, previous) => {
+        setUrl(
+          `https://api.github.com/users/${nicks[current]}`,
+          {},
+          {
+            headers: basicAuth,
+          }
+        );
+      }}
     >
-      {items.map((item, i) => (
-        <Item key={i} item={item} />
+      {nicks.map((nick, i) => (
+        <Item key={i} nick={nick} data={data} isLoading={isLoading} />
       ))}
     </Carousel>
   );
 };
 
 const Item = (props) => {
-  return (
+  return props.isLoading ? (
+    "LOADING..."
+  ) : (
     <Paper>
-      <h2>{props.item.name}</h2>
-      <p>{props.item.description}</p>
-
-      <Button className="CheckButton">Check it out!</Button>
+      <h2>{props.nick}</h2>
+      <img className="image" src={props.data.avatar_url}></img>
     </Paper>
   );
 };
 
 Item.propTypes = {
-  item: PropTypes.shape({
-    name: PropTypes.string.isRequired,
-    description: PropTypes.string.isRequired,
+  nick: PropTypes.string.isRequired,
+  data: PropTypes.shape({
+    avatar_url: PropTypes.string,
   }),
+  isLoading: PropTypes.bool,
 };
 
 export default Slider;
